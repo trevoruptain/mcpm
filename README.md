@@ -45,7 +45,7 @@ Your MCP server is now ready to use with Claude Code.
 
 ## Connecting Your MCP Server to Claude Code
 
-Once you've generated and started your MCP server, you can connect it to Claude Code to enhance its capabilities:
+Once you've generated and started your MCP server, you can connect it to Claude Code to test its capabilities:
 
 ### Connect Your MCP Server to Claude Code
 
@@ -57,9 +57,6 @@ $ claude mcp add <server-name> <command> [args...]
 
 # Example: Adding your generated MCP server
 $ claude mcp add my-mcp-server -- node dist/server.js
-
-# If your server requires environment variables
-$ claude mcp add my-mcp-server -e API_KEY=your_api_key -- node dist/server.js
 ```
 
 2. Verify your server was added successfully:
@@ -68,7 +65,7 @@ $ claude mcp add my-mcp-server -e API_KEY=your_api_key -- node dist/server.js
 $ claude mcp list
 ```
 
-3. Start using your MCP server with Claude:
+3. Select your MCP server and start using it with Claude:
 
 ```bash
 $ claude
