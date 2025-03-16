@@ -17,7 +17,7 @@
   Generates a ready-to-run project including a sample MCP server with resource and tool examples.
 
 - **Customizable Templates:**  
-  Templates for `package.json`, `tsconfig.json`, and a starter server file are easily adjustable.
+  Templates for package.json, tsconfig.json, and a starter server file are easily adjustable.
 
 - **Developer Friendly:**  
   Designed for Node.js and TypeScript developers, ensuring a smooth setup and development experience.
@@ -89,4 +89,4 @@ This project is licensed under the MIT License.
 
 ## Support
 
-If you encounter any issues or have questions, please open an issue in the [GitHub repository]([https://github.com/modelcontextprotocol/sdk](https://github.com/trevoruptain/mcpm)).
+If you encounter any issues or have questions, please open an issue in the [GitHub repository](<[https://github.com/trevoruptain/mcpm](https://github.com/trevoruptain/mcpm)>).

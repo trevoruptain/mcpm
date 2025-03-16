@@ -1,0 +1,88 @@
+import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
+
+const server = new McpServer({
+  name: "{{projectName}}",
+  version: "1.0.0"
+});
+
+// Example tool: a calculator
+server.tool("add", { a: z.number(), b: z.number() }, async ({ a, b }) => ({
+  content: [{ type: "text", text: `Result: ${a + b}` }],
+}));
+
+// Example resource: dynamic greeting
+server.resource(
+  "greeting",
+  new ResourceTemplate("greeting://{name}", { list: undefined }),
+  async (uri, { name }) => ({
+    contents: [
+      {
+        uri: uri.href,
+        text: `Hello, ${name}!`,
+      },
+    ],
+  })
+);
+
+// Example tool: a text processor
+server.tool("reverse", { text: z.string() }, async ({ text }) => ({
+  content: [
+    { type: "text", text: `Reversed: ${text.split("").reverse().join("")}` },
+  ],
+}));
+
+// Example resource: documentation
+const topics = {
+  "getting-started": "# Getting Started\nWelcome to {{projectName}}!",
+  api: "# API Documentation\nThis section covers the available endpoints.",
+  examples: "# Examples\nHere are some usage examples.",
+};
+
+server.resource(
+  "docs",
+  new ResourceTemplate("docs://{topic:string}", {
+    list: async () => ({
+      resources: Object.keys(topics).map((t) => ({
+        name: t,
+        uri: `docs://${t}`,
+        description: `Documentation: ${t}`
+      }))
+    })
+  }),
+  async (uri: URL, variables, extra) => {
+    const { topic } = variables as { topic: string };
+    const key = topic as keyof typeof topics;
+    return {
+      contents: [
+        {
+          uri: uri.href,
+          text: topics[key] || `# ${topic}\nNo documentation available for this topic.`,
+        },
+      ],
+    };
+  }
+);
+
+// Example prompt
+server.prompt(
+  "greet-user",
+  { userName: z.string() },
+  ({ userName }) => ({
+    messages: [
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text: `Please greet ${userName} politely.`,
+        },
+      },
+    ],
+  })
+);
+
+const transport = new StdioServerTransport();
+server.connect(transport)
+  .then(() => console.log("MCP server is running..."))
+  .catch((err) => console.error("Error starting MCP server:", err));
