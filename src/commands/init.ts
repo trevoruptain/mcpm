@@ -69,14 +69,14 @@ export function initCommand(options: InitOptions) {
   console.log(
     chalk.blue(`\nMCP server project "${projectName}" has been created.`)
   );
+  console.log(chalk.blue(`\nTo get started:`));
+  console.log(chalk.blue(`  npm install`));
+  console.log(chalk.blue(`  npm run build`));
+  console.log(chalk.blue(`  npm test`));
+
+  console.log(chalk.blue(`\nTo connect to Claude Code:`));
   console.log(
-    chalk.blue(
-      'Run "npm install" and "npm run build" inside the project to get started.'
-    )
+    chalk.blue(`  claude mcp add ${projectName} -- node dist/server.js`)
   );
-  console.log(
-    chalk.blue(
-      'After building, run "npm test" to verify that all MCP tools and resources are working correctly.'
-    )
-  );
+  console.log(chalk.blue(`  claude`));
 }

@@ -1,12 +1,6 @@
-# mcpm - MCP Server Scaffolding CLI
+# mcpm - Instantly Generate a MCP Server
 
-**Version:** 0.1.0  
-**License:** MIT  
-**NPM Package:** [@mcpkit/mcpm](https://www.npmjs.com/package/@mcpkit/mcpm)
-
-## Overview
-
-**mcpm**, the "Model Context Protocol Manager," is a CLI tool leveraging the [MCP TypeScript SDK](https://github.com/modelcontextprotocol/sdk) to quickly scaffold and manage Model Context Protocol (MCP) server projects. It automates tedious setup tasks, allowing you to focus on building features and integrating your server with LLM applications.
+**mcpm** is a CLI tool leveraging the [MCP TypeScript SDK](https://github.com/modelcontextprotocol/sdk) to quickly scaffold and manage Model Context Protocol (MCP) server projects. With just a single command, you can create a fully functional MCP server and immediately connect it to Claude Code or your own LLM application.
 
 ## Features
 
@@ -15,12 +9,6 @@
 
 - **Preconfigured Boilerplate:**  
   Generates a ready-to-run project including a sample MCP server with resource and tool examples.
-
-- **Customizable Templates:**  
-  Templates for package.json, tsconfig.json, and a starter server file are easily adjustable.
-
-- **Developer Friendly:**  
-  Designed for Node.js and TypeScript developers, ensuring a smooth setup and development experience.
 
 ## Installation
 
@@ -51,28 +39,9 @@ Build and run your server:
 
 ```bash
 npm run build
-npm start
 ```
 
-Your MCP server will start using the default transport and be ready to process MCP messages.
-
-## Project Structure
-
-After running `mcpm init`, your project will include:
-
-- **`src/server.ts`**: Starter MCP server file with example commands (e.g., an addition tool and a greeting resource).
-- **`package.json`**: Preconfigured for the MCP SDK and TypeScript.
-- **`tsconfig.json`**: Standard TypeScript configuration.
-
-## Usage
-
-The generated MCP server includes examples of:
-
-- **Tools**: Example tool for basic operations (e.g., addition).
-- **Resources**: Serving dynamic content such as greeting messages.
-- **Prompts**: Predefined templates to facilitate LLM interactions.
-
-Customize `src/server.ts` to add or modify tools, resources, and prompts as needed. For advanced usage, refer to the [MCP TypeScript SDK documentation](https://github.com/modelcontextprotocol/sdk).
+Your MCP server is now ready to use with Claude Code.
 
 ## Connecting Your MCP Server to Claude Code
 
@@ -103,8 +72,26 @@ $ claude mcp list
 
 ```bash
 $ claude
-> use the addition tool from my-mcp-server to add 5 and 7
+> add the number 5 and the number 7
 ```
+
+## Project Structure
+
+After running `mcpm init`, your project will include:
+
+- **`src/server.ts`**: Starter MCP server file with example commands (e.g., an addition tool and a greeting resource).
+- **`package.json`**: Preconfigured for the MCP SDK and TypeScript.
+- **`tsconfig.json`**: Standard TypeScript configuration.
+
+## Usage
+
+The generated MCP server includes examples of:
+
+- **Tools**: Example tool for basic operations (e.g., addition).
+- **Resources**: Serving dynamic content such as greeting messages.
+- **Prompts**: Predefined templates to facilitate LLM interactions.
+
+Customize `src/server.ts` to add or modify tools, resources, and prompts as needed. For advanced usage, refer to the [MCP TypeScript SDK documentation](https://github.com/modelcontextprotocol/sdk).
 
 ### Advanced Configuration
 
