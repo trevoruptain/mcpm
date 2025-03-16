@@ -1,0 +1,332 @@
+/**
+ * Standalone test runner for {{projectName}} MCP server
+ * 
+ * This script runs all tests without requiring Mocha.
+ */
+
+import assert from 'assert';
+import { sendMcpRequest, startServer, stopServer } from './test-utils.js';
+
+/**
+ * Run all tests for the MCP server
+ */
+export async function runStandaloneTests() {
+  let server;
+  
+  try {
+    // Start the server
+    console.log('Starting MCP server for standalone tests...');
+    server = await startServer();
+    console.log('MCP server started successfully');
+    
+    // Run all tests
+    let passedTests = 0;
+    let failedTests = 0;
+    
+    try {
+      await testTools(server);
+      passedTests += 6; // 3 add tests + 3 reverse tests
+    } catch (error) {
+      console.error('❌ Tool tests failed:', error.message);
+      failedTests += 6;
+    }
+    
+    try {
+      await testResources(server);
+      passedTests += 7; // 2 greeting tests + 5 docs tests
+    } catch (error) {
+      console.error('❌ Resource tests failed:', error.message);
+      failedTests += 7;
+    }
+    
+    try {
+      await testPrompts(server);
+      passedTests += 3; // 3 prompt tests
+    } catch (error) {
+      console.error('❌ Prompt tests failed:', error.message);
+      failedTests += 3;
+    }
+    
+    console.log(`\n📊 Test Results: ${passedTests} passed, ${failedTests} failed`);
+    
+    if (failedTests === 0) {
+      console.log('🎉 All tests passed!');
+      return true;
+    } else {
+      console.log('❌ Some tests failed');
+      return false;
+    }
+  } finally {
+    // Always stop the server
+    if (server) {
+      await stopServer(server);
+    }
+  }
+}
+
+/**
+ * Test all tools
+ */
+async function testTools(server) {
+  console.log('\n📋 Testing Tools...');
+  
+  // Test add tool
+  console.log('  Testing "add" tool...');
+  
+  // Test with positive numbers
+  let result = await sendMcpRequest(server, {
+    id: "test-add-1",
+    method: "tool",
+    params: {
+      name: "add",
+      input: { a: 5, b: 7 }
+    }
+  });
+  
+  if (!result || !result.result || !result.result.content || !result.result.content[0]) {
+    throw new Error(`Invalid response format for add tool: ${JSON.stringify(result)}`);
+  }
+  
+  assert.strictEqual(result.result.content[0].text, 'Result: 12');
+  console.log('    ✅ Add test 1 passed (positive numbers)');
+  
+  // Test with negative numbers
+  result = await sendMcpRequest(server, {
+    id: "test-add-2",
+    method: "tool",
+    params: {
+      name: "add",
+      input: { a: -5, b: 7 }
+    }
+  });
+  assert.strictEqual(result.result.content[0].text, 'Result: 2');
+  console.log('    ✅ Add test 2 passed (negative numbers)');
+  
+  // Test with zero
+  result = await sendMcpRequest(server, {
+    id: "test-add-3",
+    method: "tool",
+    params: {
+      name: "add",
+      input: { a: 0, b: 0 }
+    }
+  });
+  assert.strictEqual(result.result.content[0].text, 'Result: 0');
+  console.log('    ✅ Add test 3 passed (zero values)');
+  
+  console.log('  ✅ "add" tool tests passed!');
+  
+  // Test reverse tool
+  console.log('  Testing "reverse" tool...');
+  
+  // Test with simple string
+  result = await sendMcpRequest(server, {
+    id: "test-reverse-1",
+    method: "tool",
+    params: {
+      name: "reverse",
+      input: { text: "hello" }
+    }
+  });
+  assert.strictEqual(result.result.content[0].text, 'Reversed: olleh');
+  console.log('    ✅ Reverse test 1 passed (simple string)');
+  
+  // Test with empty string
+  result = await sendMcpRequest(server, {
+    id: "test-reverse-2",
+    method: "tool",
+    params: {
+      name: "reverse",
+      input: { text: "" }
+    }
+  });
+  assert.strictEqual(result.result.content[0].text, 'Reversed: ');
+  console.log('    ✅ Reverse test 2 passed (empty string)');
+  
+  // Test with special characters
+  result = await sendMcpRequest(server, {
+    id: "test-reverse-3",
+    method: "tool",
+    params: {
+      name: "reverse",
+      input: { text: "hello world!" }
+    }
+  });
+  assert.strictEqual(result.result.content[0].text, 'Reversed: !dlrow olleh');
+  console.log('    ✅ Reverse test 3 passed (special characters)');
+  
+  console.log('  ✅ "reverse" tool tests passed!');
+  
+  console.log('✅ All tool tests passed!\n');
+}
+
+/**
+ * Test all resources
+ */
+async function testResources(server) {
+  console.log('\n📋 Testing Resources...');
+  
+  // Test greeting resource
+  console.log('  Testing "greeting" resource...');
+  
+  // Test with simple name
+  let result = await sendMcpRequest(server, {
+    id: "test-greeting-1",
+    method: "resource/get",
+    params: {
+      uri: "greeting://Alice"
+    }
+  });
+  
+  if (!result || !result.result || !result.result.contents || !result.result.contents[0]) {
+    throw new Error(`Invalid response format for greeting resource: ${JSON.stringify(result)}`);
+  }
+  
+  assert.strictEqual(result.result.contents[0].text, 'Hello, Alice!');
+  console.log('    ✅ Greeting test 1 passed (simple name)');
+  
+  // Test with special characters
+  result = await sendMcpRequest(server, {
+    id: "test-greeting-2",
+    method: "resource/get",
+    params: {
+      uri: "greeting://John%20Doe"
+    }
+  });
+  assert.strictEqual(result.result.contents[0].text, 'Hello, John Doe!');
+  console.log('    ✅ Greeting test 2 passed (special characters)');
+  
+  console.log('  ✅ "greeting" resource tests passed!');
+  
+  // Test docs resource
+  console.log('  Testing "docs" resource...');
+  
+  // Test getting started
+  result = await sendMcpRequest(server, {
+    id: "test-docs-1",
+    method: "resource/get",
+    params: {
+      uri: "docs://getting-started"
+    }
+  });
+  assert.ok(result.result.contents[0].text.includes('Welcome to {{projectName}}'));
+  console.log('    ✅ Docs test 1 passed (getting-started)');
+  
+  // Test API docs
+  result = await sendMcpRequest(server, {
+    id: "test-docs-2",
+    method: "resource/get",
+    params: {
+      uri: "docs://api"
+    }
+  });
+  assert.ok(result.result.contents[0].text.includes('API Documentation'));
+  console.log('    ✅ Docs test 2 passed (api)');
+  
+  // Test examples docs
+  result = await sendMcpRequest(server, {
+    id: "test-docs-3",
+    method: "resource/get",
+    params: {
+      uri: "docs://examples"
+    }
+  });
+  assert.ok(result.result.contents[0].text.includes('Examples'));
+  console.log('    ✅ Docs test 3 passed (examples)');
+  
+  // Test non-existent topic
+  result = await sendMcpRequest(server, {
+    id: "test-docs-4",
+    method: "resource/get",
+    params: {
+      uri: "docs://non-existent-topic"
+    }
+  });
+  assert.ok(result.result.contents[0].text.includes('No documentation available'));
+  console.log('    ✅ Docs test 4 passed (non-existent topic)');
+  
+  // Test listing docs
+  result = await sendMcpRequest(server, {
+    id: "test-docs-list-1",
+    method: "resource/list",
+    params: {
+      uri: "docs://"
+    }
+  });
+  
+  if (!result || !result.result || !result.result.resources) {
+    throw new Error(`Invalid response format for docs list: ${JSON.stringify(result)}`);
+  }
+  
+  assert.ok(Array.isArray(result.result.resources));
+  assert.ok(result.result.resources.length >= 3);
+  
+  // Check that all expected topics are present
+  const topics = result.result.resources.map(r => r.name);
+  assert.ok(topics.includes('getting-started'));
+  assert.ok(topics.includes('api'));
+  assert.ok(topics.includes('examples'));
+  console.log('    ✅ Docs test 5 passed (listing)');
+  
+  console.log('  ✅ "docs" resource tests passed!');
+  
+  console.log('✅ All resource tests passed!\n');
+}
+
+/**
+ * Test all prompts
+ */
+async function testPrompts(server) {
+  console.log('\n📋 Testing Prompts...');
+  
+  // Test greet-user prompt
+  console.log('  Testing "greet-user" prompt...');
+  
+  // Test with simple name
+  let result = await sendMcpRequest(server, {
+    id: "test-prompt-1",
+    method: "prompt",
+    params: {
+      name: "greet-user",
+      input: { userName: "Bob" }
+    }
+  });
+  
+  if (!result || !result.result || !result.result.messages || !result.result.messages[0]) {
+    throw new Error(`Invalid response format for prompt: ${JSON.stringify(result)}`);
+  }
+  
+  assert.ok(result.result.messages[0].content.text.includes('Bob'));
+  assert.strictEqual(result.result.messages[0].role, 'user');
+  console.log('    ✅ Prompt test 1 passed (simple name)');
+  
+  // Test with special characters
+  result = await sendMcpRequest(server, {
+    id: "test-prompt-2",
+    method: "prompt",
+    params: {
+      name: "greet-user",
+      input: { userName: "Jane Doe" }
+    }
+  });
+  assert.ok(result.result.messages[0].content.text.includes('Jane Doe'));
+  assert.strictEqual(result.result.messages[0].role, 'user');
+  console.log('    ✅ Prompt test 2 passed (special characters)');
+  
+  // Test with empty name
+  result = await sendMcpRequest(server, {
+    id: "test-prompt-3",
+    method: "prompt",
+    params: {
+      name: "greet-user",
+      input: { userName: "" }
+    }
+  });
+  assert.ok(result.result.messages.length > 0);
+  assert.strictEqual(result.result.messages[0].role, 'user');
+  console.log('    ✅ Prompt test 3 passed (empty name)');
+  
+  console.log('  ✅ "greet-user" prompt tests passed!');
+  
+  console.log('✅ All prompt tests passed!\n');
+} 

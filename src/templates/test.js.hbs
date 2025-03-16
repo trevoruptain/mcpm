@@ -1,0 +1,227 @@
+#!/usr/bin/env node
+
+/**
+ * Test script for {{projectName}} MCP server
+ * 
+ * This script tests the actual implementation of tools, resources, and prompts
+ * by importing the server and testing its components directly.
+ * 
+ * Run with: npm test
+ */
+
+// Set NODE_ENV to 'test' to prevent server from connecting to transport
+process.env.NODE_ENV = 'test';
+
+import assert from 'assert';
+
+// Import the server module to test its components
+import { server, tools, resources, prompts } from './dist/server.js';
+
+// Test runner
+async function runTests() {
+  console.log('\n🧪 Running tests for {{projectName}} MCP components...\n');
+  
+  let passedTests = 0;
+  let failedTests = 0;
+  
+  // Test tools
+  console.log('📋 Testing Tools...');
+  
+  try {
+    // Test add tool
+    console.log('  Testing "add" tool...');
+    
+    if (!tools.has('add')) {
+      throw new Error('Add tool not found in tools map');
+    }
+    
+    const addTool = tools.get('add');
+    
+    // Test with positive numbers
+    let result = await addTool.handler({ a: 5, b: 7 });
+    assert.strictEqual(result.content[0].text, 'Result: 12');
+    console.log('    ✅ Add test 1 passed (positive numbers)');
+    passedTests++;
+    
+    // Test with negative numbers
+    result = await addTool.handler({ a: -5, b: 7 });
+    assert.strictEqual(result.content[0].text, 'Result: 2');
+    console.log('    ✅ Add test 2 passed (negative numbers)');
+    passedTests++;
+    
+    // Test with zero
+    result = await addTool.handler({ a: 0, b: 0 });
+    assert.strictEqual(result.content[0].text, 'Result: 0');
+    console.log('    ✅ Add test 3 passed (zero values)');
+    passedTests++;
+    
+    console.log('  ✅ "add" tool tests passed!');
+    
+    // Test reverse tool
+    console.log('  Testing "reverse" tool...');
+    
+    if (!tools.has('reverse')) {
+      throw new Error('Reverse tool not found in tools map');
+    }
+    
+    const reverseTool = tools.get('reverse');
+    
+    // Test with simple string
+    result = await reverseTool.handler({ text: "hello" });
+    assert.strictEqual(result.content[0].text, 'Reversed: olleh');
+    console.log('    ✅ Reverse test 1 passed (simple string)');
+    passedTests++;
+    
+    // Test with empty string
+    result = await reverseTool.handler({ text: "" });
+    assert.strictEqual(result.content[0].text, 'Reversed: ');
+    console.log('    ✅ Reverse test 2 passed (empty string)');
+    passedTests++;
+    
+    // Test with special characters
+    result = await reverseTool.handler({ text: "hello world!" });
+    assert.strictEqual(result.content[0].text, 'Reversed: !dlrow olleh');
+    console.log('    ✅ Reverse test 3 passed (special characters)');
+    passedTests++;
+    
+    console.log('  ✅ "reverse" tool tests passed!');
+    console.log('✅ All tool tests passed!\n');
+  } catch (error) {
+    console.error(`  ❌ Tool test failed: ${error.message}`);
+    failedTests += 6 - passedTests;
+    passedTests = Math.min(passedTests, 6);
+  }
+  
+  // Test resources
+  console.log('📋 Testing Resources...');
+  
+  try {
+    // Test greeting resource
+    console.log('  Testing "greeting" resource...');
+    
+    if (!resources.has('greeting')) {
+      throw new Error('Greeting resource not found in resources map');
+    }
+    
+    const greetingResource = resources.get('greeting');
+    
+    // Test with simple name
+    let uri = new URL('greeting://Alice');
+    let result = await greetingResource.handler(uri, { name: 'Alice' });
+    assert.strictEqual(result.contents[0].text, 'Hello, Alice!');
+    console.log('    ✅ Greeting test 1 passed (simple name)');
+    passedTests++;
+    
+    // Test with special characters
+    uri = new URL('greeting://John%20Doe');
+    result = await greetingResource.handler(uri, { name: 'John Doe' });
+    assert.strictEqual(result.contents[0].text, 'Hello, John Doe!');
+    console.log('    ✅ Greeting test 2 passed (special characters)');
+    passedTests++;
+    
+    console.log('  ✅ "greeting" resource tests passed!');
+    
+    // Test docs resource
+    console.log('  Testing "docs" resource...');
+    
+    if (!resources.has('docs')) {
+      throw new Error('Docs resource not found in resources map');
+    }
+    
+    const docsResource = resources.get('docs');
+    
+    // Test getting started
+    uri = new URL('docs://getting-started');
+    result = await docsResource.handler(uri, { topic: 'getting-started' });
+    assert.ok(result.contents[0].text.includes('Welcome to {{projectName}}'));
+    console.log('    ✅ Docs test 1 passed (getting-started)');
+    passedTests++;
+    
+    // Test API docs
+    uri = new URL('docs://api');
+    result = await docsResource.handler(uri, { topic: 'api' });
+    assert.ok(result.contents[0].text.includes('API Documentation'));
+    console.log('    ✅ Docs test 2 passed (api)');
+    passedTests++;
+    
+    // Test examples docs
+    uri = new URL('docs://examples');
+    result = await docsResource.handler(uri, { topic: 'examples' });
+    assert.ok(result.contents[0].text.includes('Examples'));
+    console.log('    ✅ Docs test 3 passed (examples)');
+    passedTests++;
+    
+    // Test non-existent topic
+    uri = new URL('docs://non-existent-topic');
+    result = await docsResource.handler(uri, { topic: 'non-existent-topic' });
+    assert.ok(result.contents[0].text.includes('No documentation available'));
+    console.log('    ✅ Docs test 4 passed (non-existent topic)');
+    passedTests++;
+    
+    console.log('  ✅ "docs" resource tests passed!');
+    console.log('✅ All resource tests passed!\n');
+  } catch (error) {
+    console.error(`  ❌ Resource test failed: ${error.message}`);
+    failedTests += 6 - (passedTests - 6); // Adjusted for 6 resource tests instead of 7
+    passedTests = Math.min(passedTests, 12); // Adjusted for 12 total tests instead of 13
+  }
+  
+  // Test prompts
+  console.log('📋 Testing Prompts...');
+  
+  try {
+    // Test greet-user prompt
+    console.log('  Testing "greet-user" prompt...');
+    
+    if (!prompts.has('greet-user')) {
+      throw new Error('Greet-user prompt not found in prompts map');
+    }
+    
+    const greetUserPrompt = prompts.get('greet-user');
+    
+    // Test with simple name
+    let result = greetUserPrompt.handler({ userName: "Bob" });
+    assert.ok(result.messages[0].content.text.includes('Bob'));
+    assert.strictEqual(result.messages[0].role, 'user');
+    console.log('    ✅ Prompt test 1 passed (simple name)');
+    passedTests++;
+    
+    // Test with special characters
+    result = greetUserPrompt.handler({ userName: "Jane Doe" });
+    assert.ok(result.messages[0].content.text.includes('Jane Doe'));
+    assert.strictEqual(result.messages[0].role, 'user');
+    console.log('    ✅ Prompt test 2 passed (special characters)');
+    passedTests++;
+    
+    // Test with empty name
+    result = greetUserPrompt.handler({ userName: "" });
+    assert.ok(result.messages.length > 0);
+    assert.strictEqual(result.messages[0].role, 'user');
+    console.log('    ✅ Prompt test 3 passed (empty name)');
+    passedTests++;
+    
+    console.log('  ✅ "greet-user" prompt tests passed!');
+    console.log('✅ All prompt tests passed!\n');
+  } catch (error) {
+    console.error(`  ❌ Prompt test failed: ${error.message}`);
+    failedTests += 3 - (passedTests - 12); // Adjusted for 12 previous tests instead of 13
+    passedTests = Math.min(passedTests, 15); // Adjusted for 15 total tests instead of 16
+  }
+  
+  // Print summary
+  console.log(`\n📊 Test Results: ${passedTests} passed, ${failedTests} failed`);
+  
+  if (failedTests === 0) {
+    console.log('\n🎉 All tests passed successfully!');
+    return true;
+  } else {
+    console.error('\n❌ Some tests failed');
+    process.exit(1);
+  }
+}
+
+// Run the tests
+runTests().catch(error => {
+  console.error('Error running tests:', error);
+  process.exit(1);
+}); 

@@ -35,6 +35,7 @@ export function initCommand(options: InitOptions) {
     process.exit(1);
   }
 
+  // Create project directories
   fs.mkdirSync(targetDir);
   fs.mkdirSync(join(targetDir, "src"));
 
@@ -52,12 +53,30 @@ export function initCommand(options: InitOptions) {
     projectName,
   });
 
+  // Generate README.md
+  generateFile("README.md.hbs", join(targetDir, "README.md"), {
+    projectName,
+  });
+
+  // Generate .gitignore
+  generateFile(".gitignore.hbs", join(targetDir, ".gitignore"), {});
+
+  // Generate test file
+  generateFile("test.js.hbs", join(targetDir, "test.js"), {
+    projectName,
+  });
+
   console.log(
     chalk.blue(`\nMCP server project "${projectName}" has been created.`)
   );
   console.log(
     chalk.blue(
       'Run "npm install" and "npm run build" inside the project to get started.'
+    )
+  );
+  console.log(
+    chalk.blue(
+      'After building, run "npm test" to verify that all MCP tools and resources are working correctly.'
     )
   );
 }

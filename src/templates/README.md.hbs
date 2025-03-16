@@ -1,0 +1,125 @@
+# {{projectName}}
+
+An MCP server project scaffolded with mcpm.
+
+## Getting Started
+
+### Installation
+
+```bash
+npm install
+```
+
+### Build
+
+```bash
+npm run build
+```
+
+### Start the Server
+
+```bash
+npm start
+```
+
+## Testing
+
+This project includes automated tests for all MCP tools, resources, and prompts. To run the tests:
+
+```bash
+npm test
+```
+
+The test script directly tests each component without running the server, verifying that:
+1. Tools correctly process inputs and return expected outputs
+2. Resources correctly handle URI parameters and return appropriate content
+3. Prompts correctly generate messages based on input parameters
+
+## Available MCP Tools
+
+### add
+
+A simple calculator tool that adds two numbers.
+
+Example:
+```json
+{
+  "method": "tool",
+  "params": {
+    "name": "add",
+    "input": { "a": 5, "b": 7 }
+  }
+}
+```
+
+### reverse
+
+A text processor that reverses the input text.
+
+Example:
+```json
+{
+  "method": "tool",
+  "params": {
+    "name": "reverse",
+    "input": { "text": "hello world" }
+  }
+}
+```
+
+## Available MCP Resources
+
+### greeting
+
+A dynamic greeting resource that generates personalized greetings.
+
+Example:
+```json
+{
+  "method": "resource/get",
+  "params": {
+    "uri": "greeting://Alice"
+  }
+}
+```
+
+### docs
+
+Documentation resources with various topics.
+
+Example:
+```json
+{
+  "method": "resource/get",
+  "params": {
+    "uri": "docs://getting-started"
+  }
+}
+```
+
+List all available documentation topics:
+```json
+{
+  "method": "resource/list",
+  "params": {
+    "uri": "docs://"
+  }
+}
+```
+
+## Available MCP Prompts
+
+### greet-user
+
+A prompt that generates a polite greeting for a user.
+
+Example:
+```json
+{
+  "method": "prompt",
+  "params": {
+    "name": "greet-user",
+    "input": { "userName": "Bob" }
+  }
+}
+``` 

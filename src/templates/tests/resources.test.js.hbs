@@ -1,0 +1,120 @@
+/**
+ * Unit tests for MCP resources
+ */
+
+import assert from 'assert';
+import { sendMcpRequest, startServer, stopServer } from './test-utils.js';
+
+let server;
+
+// Setup - start server before tests
+before(async function() {
+  this.timeout(10000); // Increase timeout for server startup
+  server = await startServer();
+});
+
+// Teardown - stop server after tests
+after(async function() {
+  this.timeout(5000); // Increase timeout for server shutdown
+  await stopServer(server);
+});
+
+describe('MCP Resources', function() {
+  // Set timeout for all tests in this suite
+  this.timeout(10000);
+  
+  describe('greeting resource', function() {
+    it('should correctly generate a greeting with a name', async function() {
+      const result = await sendMcpRequest(server, {
+        id: "test-greeting-1",
+        method: "resource/get",
+        params: {
+          uri: "greeting://Alice"
+        }
+      });
+      
+      assert.strictEqual(result.result.contents[0].text, 'Hello, Alice!');
+    });
+    
+    it('should handle special characters in names', async function() {
+      const result = await sendMcpRequest(server, {
+        id: "test-greeting-2",
+        method: "resource/get",
+        params: {
+          uri: "greeting://John%20Doe"
+        }
+      });
+      
+      assert.strictEqual(result.result.contents[0].text, 'Hello, John Doe!');
+    });
+  });
+  
+  describe('docs resource', function() {
+    it('should correctly retrieve getting-started documentation', async function() {
+      const result = await sendMcpRequest(server, {
+        id: "test-docs-1",
+        method: "resource/get",
+        params: {
+          uri: "docs://getting-started"
+        }
+      });
+      
+      assert.ok(result.result.contents[0].text.includes('Welcome to {{projectName}}'));
+    });
+    
+    it('should correctly retrieve api documentation', async function() {
+      const result = await sendMcpRequest(server, {
+        id: "test-docs-2",
+        method: "resource/get",
+        params: {
+          uri: "docs://api"
+        }
+      });
+      
+      assert.ok(result.result.contents[0].text.includes('API Documentation'));
+    });
+    
+    it('should correctly retrieve examples documentation', async function() {
+      const result = await sendMcpRequest(server, {
+        id: "test-docs-3",
+        method: "resource/get",
+        params: {
+          uri: "docs://examples"
+        }
+      });
+      
+      assert.ok(result.result.contents[0].text.includes('Examples'));
+    });
+    
+    it('should handle non-existent documentation topics gracefully', async function() {
+      const result = await sendMcpRequest(server, {
+        id: "test-docs-4",
+        method: "resource/get",
+        params: {
+          uri: "docs://non-existent-topic"
+        }
+      });
+      
+      assert.ok(result.result.contents[0].text.includes('No documentation available'));
+    });
+    
+    it('should list all available documentation topics', async function() {
+      const result = await sendMcpRequest(server, {
+        id: "test-docs-list-1",
+        method: "resource/list",
+        params: {
+          uri: "docs://"
+        }
+      });
+      
+      assert.ok(Array.isArray(result.result.resources));
+      assert.ok(result.result.resources.length >= 3);
+      
+      // Check that all expected topics are present
+      const topics = result.result.resources.map(r => r.name);
+      assert.ok(topics.includes('getting-started'));
+      assert.ok(topics.includes('api'));
+      assert.ok(topics.includes('examples'));
+    });
+  });
+}); 

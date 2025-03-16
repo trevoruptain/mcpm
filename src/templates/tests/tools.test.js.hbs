@@ -1,0 +1,108 @@
+/**
+ * Unit tests for MCP tools
+ */
+
+import { spawn } from 'child_process';
+import assert from 'assert';
+import { sendMcpRequest, startServer, stopServer } from './test-utils.js';
+
+let server;
+
+// Setup - start server before tests
+before(async function() {
+  this.timeout(10000); // Increase timeout for server startup
+  server = await startServer();
+});
+
+// Teardown - stop server after tests
+after(async function() {
+  this.timeout(5000); // Increase timeout for server shutdown
+  await stopServer(server);
+});
+
+describe('MCP Tools', function() {
+  // Set timeout for all tests in this suite
+  this.timeout(10000);
+  
+  describe('add tool', function() {
+    it('should correctly add two positive numbers', async function() {
+      const result = await sendMcpRequest(server, {
+        id: "test-add-1",
+        method: "tool",
+        params: {
+          name: "add",
+          input: { a: 5, b: 7 }
+        }
+      });
+      
+      assert.strictEqual(result.result.content[0].text, 'Result: 12');
+    });
+    
+    it('should handle negative numbers', async function() {
+      const result = await sendMcpRequest(server, {
+        id: "test-add-2",
+        method: "tool",
+        params: {
+          name: "add",
+          input: { a: -5, b: 7 }
+        }
+      });
+      
+      assert.strictEqual(result.result.content[0].text, 'Result: 2');
+    });
+    
+    it('should handle zero values', async function() {
+      const result = await sendMcpRequest(server, {
+        id: "test-add-3",
+        method: "tool",
+        params: {
+          name: "add",
+          input: { a: 0, b: 0 }
+        }
+      });
+      
+      assert.strictEqual(result.result.content[0].text, 'Result: 0');
+    });
+  });
+  
+  describe('reverse tool', function() {
+    it('should correctly reverse a simple string', async function() {
+      const result = await sendMcpRequest(server, {
+        id: "test-reverse-1",
+        method: "tool",
+        params: {
+          name: "reverse",
+          input: { text: "hello" }
+        }
+      });
+      
+      assert.strictEqual(result.result.content[0].text, 'Reversed: olleh');
+    });
+    
+    it('should handle empty strings', async function() {
+      const result = await sendMcpRequest(server, {
+        id: "test-reverse-2",
+        method: "tool",
+        params: {
+          name: "reverse",
+          input: { text: "" }
+        }
+      });
+      
+      assert.strictEqual(result.result.content[0].text, 'Reversed: ');
+    });
+    
+    it('should preserve spaces and special characters', async function() {
+      const result = await sendMcpRequest(server, {
+        id: "test-reverse-3",
+        method: "tool",
+        params: {
+          name: "reverse",
+          input: { text: "hello world!" }
+        }
+      });
+      
+      assert.strictEqual(result.result.content[0].text, 'Reversed: !dlrow olleh');
+    });
+  });
+}); 

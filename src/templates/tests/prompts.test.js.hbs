@@ -1,0 +1,70 @@
+/**
+ * Unit tests for MCP prompts
+ */
+
+import assert from 'assert';
+import { sendMcpRequest, startServer, stopServer } from './test-utils.js';
+
+let server;
+
+// Setup - start server before tests
+before(async function() {
+  this.timeout(10000); // Increase timeout for server startup
+  server = await startServer();
+});
+
+// Teardown - stop server after tests
+after(async function() {
+  this.timeout(5000); // Increase timeout for server shutdown
+  await stopServer(server);
+});
+
+describe('MCP Prompts', function() {
+  // Set timeout for all tests in this suite
+  this.timeout(10000);
+  
+  describe('greet-user prompt', function() {
+    it('should correctly generate a greeting with a name', async function() {
+      const result = await sendMcpRequest(server, {
+        id: "test-prompt-1",
+        method: "prompt",
+        params: {
+          name: "greet-user",
+          input: { userName: "Bob" }
+        }
+      });
+      
+      assert.ok(result.result.messages[0].content.text.includes('Bob'));
+      assert.strictEqual(result.result.messages[0].role, 'user');
+    });
+    
+    it('should handle special characters in names', async function() {
+      const result = await sendMcpRequest(server, {
+        id: "test-prompt-2",
+        method: "prompt",
+        params: {
+          name: "greet-user",
+          input: { userName: "Jane Doe" }
+        }
+      });
+      
+      assert.ok(result.result.messages[0].content.text.includes('Jane Doe'));
+      assert.strictEqual(result.result.messages[0].role, 'user');
+    });
+    
+    it('should handle empty names gracefully', async function() {
+      const result = await sendMcpRequest(server, {
+        id: "test-prompt-3",
+        method: "prompt",
+        params: {
+          name: "greet-user",
+          input: { userName: "" }
+        }
+      });
+      
+      // Even with empty name, should still return a valid message
+      assert.ok(result.result.messages.length > 0);
+      assert.strictEqual(result.result.messages[0].role, 'user');
+    });
+  });
+}); 

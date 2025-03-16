@@ -1,88 +1,126 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-const server = new McpServer({
+// Create the MCP server with basic information
+export const server = new McpServer({
   name: "{{projectName}}",
   version: "1.0.0"
 });
 
-// Example tool: a calculator
-server.tool("add", { a: z.number(), b: z.number() }, async ({ a, b }) => ({
-  content: [{ type: "text", text: `Result: ${a + b}` }],
-}));
+// Store all tools in this map for easy access during testing
+export const tools = new Map();
 
-// Example resource: dynamic greeting
-server.resource(
-  "greeting",
-  new ResourceTemplate("greeting://{name}", { list: undefined }),
-  async (uri, { name }) => ({
+// Tool #1: Simple calculator that adds two numbers
+const addTool = { a: z.number(), b: z.number() };
+const addHandler = async ({ a, b }: { a: number; b: number }, extra?: RequestHandlerExtra) => ({
+  content: [{ type: "text" as const, text: `Result: ${a + b}` }],
+});
+// Register the tool with the server
+server.tool("add", addTool, addHandler);
+// Save it to our tools collection for testing
+tools.set("add", { schema: addTool, handler: addHandler });
+
+// Store all resources in this map for easy access during testing
+export const resources = new Map();
+
+// Resource #1: A simple greeting that uses the name from the URL
+const greetingTemplate = new ResourceTemplate("greeting://{name}", { list: undefined });
+const greetingHandler = async (uri: URL, variables: any, extra?: RequestHandlerExtra) => {
+  // Extract the name from the variables
+  const { name } = variables;
+  return {
     contents: [
       {
         uri: uri.href,
         text: `Hello, ${name}!`,
       },
     ],
-  })
-);
+  };
+};
+// Register the resource with the server
+server.resource("greeting", greetingTemplate, greetingHandler);
+// Save it to our resources collection for testing
+resources.set("greeting", { template: greetingTemplate, handler: greetingHandler });
 
-// Example tool: a text processor
-server.tool("reverse", { text: z.string() }, async ({ text }) => ({
+// Tool #2: Text reverser that flips any input string
+const reverseTool = { text: z.string() };
+const reverseHandler = async ({ text }: { text: string }, extra?: RequestHandlerExtra) => ({
   content: [
-    { type: "text", text: `Reversed: ${text.split("").reverse().join("")}` },
+    { type: "text" as const, text: `Reversed: ${text.split("").reverse().join("")}` },
   ],
-}));
+});
+// Register the tool with the server
+server.tool("reverse", reverseTool, reverseHandler);
+// Save it to our tools collection for testing
+tools.set("reverse", { schema: reverseTool, handler: reverseHandler });
 
-// Example resource: documentation
+// Resource #2: Documentation pages with different topics
 const topics = {
   "getting-started": "# Getting Started\nWelcome to {{projectName}}!",
-  api: "# API Documentation\nThis section covers the available endpoints.",
-  examples: "# Examples\nHere are some usage examples.",
+  "api": "# API Documentation\nThis section covers the available endpoints.",
+  "examples": "# Examples\nHere are some usage examples.",
 };
 
-server.resource(
-  "docs",
-  new ResourceTemplate("docs://{topic:string}", {
-    list: async () => ({
-      resources: Object.keys(topics).map((t) => ({
-        name: t,
-        uri: `docs://${t}`,
-        description: `Documentation: ${t}`
-      }))
-    })
-  }),
-  async (uri: URL, variables, extra) => {
-    const { topic } = variables as { topic: string };
-    const key = topic as keyof typeof topics;
-    return {
-      contents: [
-        {
-          uri: uri.href,
-          text: topics[key] || `# ${topic}\nNo documentation available for this topic.`,
-        },
-      ],
-    };
-  }
-);
+// Create a template that accepts a topic parameter
+const docsTemplate = new ResourceTemplate("docs://{topic:string}", {
+  // The list function allows discovery of available resources
+  list: async () => ({
+    resources: Object.keys(topics).map((t) => ({
+      name: t,
+      uri: `docs://${t}`,
+      description: `Documentation: ${t}`
+    }))
+  })
+});
 
-// Example prompt
-server.prompt(
-  "greet-user",
-  { userName: z.string() },
-  ({ userName }) => ({
-    messages: [
+const docsHandler = async (uri: URL, variables: any, extra?: RequestHandlerExtra) => {
+  // Extract the topic from the variables
+  const { topic } = variables;
+  const key = topic as keyof typeof topics;
+  return {
+    contents: [
       {
-        role: "user",
-        content: {
-          type: "text",
-          text: `Please greet ${userName} politely.`,
-        },
+        uri: uri.href,
+        // Return the requested topic or a "not found" message
+        text: topics[key] || `# ${topic}\nNo documentation available for this topic.`,
       },
     ],
-  })
-);
+  };
+};
 
-const transport = new StdioServerTransport();
-server.connect(transport)
-  .then(() => console.log("MCP server is running..."))
-  .catch((err) => console.error("Error starting MCP server:", err));
+// Register the resource with the server
+server.resource("docs", docsTemplate, docsHandler);
+// Save it to our resources collection for testing
+resources.set("docs", { template: docsTemplate, handler: docsHandler });
+
+// Store all prompts in this map for easy access during testing
+export const prompts = new Map();
+
+// Prompt #1: A simple greeting prompt that takes a username
+const greetUserSchema = { userName: z.string() };
+const greetUserHandler = ({ userName }: { userName: string }, extra?: RequestHandlerExtra) => ({
+  messages: [
+    {
+      role: "user" as const,
+      content: {
+        type: "text" as const,
+        text: `Please greet ${userName} politely.`,
+      },
+    },
+  ],
+});
+
+// Register the prompt with the server
+server.prompt("greet-user", greetUserSchema, greetUserHandler);
+// Save it to our prompts collection for testing
+prompts.set("greet-user", { schema: greetUserSchema, handler: greetUserHandler });
+
+// Only connect to the transport when running as a server (not during tests)
+if (process.env.NODE_ENV !== 'test') {
+  const transport = new StdioServerTransport();
+  server.connect(transport)
+    .then(() => console.log("MCP server is running..."))
+    .catch((err) => console.error("Error starting MCP server:", err));
+}

@@ -1,0 +1,144 @@
+/**
+ * Test utilities for MCP server tests
+ */
+
+import { spawn } from 'child_process';
+
+// Buffer to collect server output
+let outputBuffer = '';
+
+// Request timeout in milliseconds
+const REQUEST_TIMEOUT = 8000;
+
+/**
+ * Starts the MCP server as a child process
+ * @returns {Promise<ChildProcess>} The server process
+ */
+export async function startServer() {
+  console.log('Starting MCP server...');
+  const server = spawn('node', ['dist/server.js']);
+  
+  // Set up logging and collect output
+  server.stdout.on('data', (data) => {
+    const output = data.toString();
+    outputBuffer += output;
+    console.log(`Server output: ${output.trim()}`);
+  });
+  
+  server.stderr.on('data', (data) => {
+    console.error(`Server error: ${data.toString().trim()}`);
+  });
+  
+  // Wait for server to start and be ready
+  return new Promise((resolve, reject) => {
+    const checkStarted = () => {
+      if (outputBuffer.includes('MCP server is running')) {
+        // Clear the buffer after server has started
+        outputBuffer = '';
+        // Give the server a moment to fully initialize
+        setTimeout(() => resolve(server), 500);
+      } else if (outputBuffer.includes('Error')) {
+        reject(new Error(`Server failed to start: ${outputBuffer}`));
+      } else {
+        setTimeout(checkStarted, 100);
+      }
+    };
+    
+    // Set a timeout for server startup
+    const startupTimeout = setTimeout(() => {
+      reject(new Error('Server startup timed out'));
+    }, 10000);
+    
+    checkStarted();
+    
+    // Clear the timeout if server starts successfully
+    server.on('error', (err) => {
+      clearTimeout(startupTimeout);
+      reject(new Error(`Failed to start server: ${err.message}`));
+    });
+  });
+}
+
+/**
+ * Stops the MCP server
+ * @param {ChildProcess} server - The server process to stop
+ * @returns {Promise<void>}
+ */
+export async function stopServer(server) {
+  if (server) {
+    console.log('Stopping MCP server...');
+    server.kill();
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+}
+
+/**
+ * Sends an MCP request to the server
+ * @param {ChildProcess} server - The server process
+ * @param {Object} request - The MCP request to send
+ * @returns {Promise<Object>} The MCP response
+ */
+export async function sendMcpRequest(server, request) {
+  // Clear the output buffer before sending a new request
+  outputBuffer = '';
+  
+  return new Promise((resolve, reject) => {
+    // Add a newline to ensure the request is properly sent
+    const requestStr = JSON.stringify(request) + '\n';
+    
+    // Write the request to the server's stdin
+    if (!server.stdin.write(requestStr)) {
+      reject(new Error('Failed to write to server stdin'));
+      return;
+    }
+    
+    // Function to check for a response in the output buffer
+    const checkForResponse = () => {
+      try {
+        // Look for JSON responses in the output buffer
+        const lines = outputBuffer.split('\n');
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (trimmedLine && trimmedLine.startsWith('{') && trimmedLine.endsWith('}')) {
+            try {
+              const response = JSON.parse(trimmedLine);
+              if (response.id === request.id) {
+                // Clear the buffer after finding the response
+                outputBuffer = '';
+                resolve(response);
+                return true;
+              }
+            } catch (e) {
+              // Not valid JSON or not our response, continue
+            }
+          }
+        }
+      } catch (error) {
+        // Continue checking
+      }
+      return false;
+    };
+    
+    // Set up a listener for server output
+    const responseHandler = (data) => {
+      outputBuffer += data.toString();
+      if (checkForResponse()) {
+        server.stdout.removeListener('data', responseHandler);
+      }
+    };
+    
+    server.stdout.on('data', responseHandler);
+    
+    // Also check the existing buffer in case the response was already received
+    if (checkForResponse()) {
+      server.stdout.removeListener('data', responseHandler);
+      return;
+    }
+    
+    // Set timeout for response
+    setTimeout(() => {
+      server.stdout.removeListener('data', responseHandler);
+      reject(new Error(`Request timed out: ${JSON.stringify(request)}`));
+    }, REQUEST_TIMEOUT);
+  });
+} 
